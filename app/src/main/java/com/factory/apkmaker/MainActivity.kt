@@ -109,7 +109,7 @@ class MainActivity : AppCompatActivity() {
             """.trimIndent()
 
             val json = JSONObject().apply {
-                put("model", "llama3-8b-8192")
+                put("model", "llama-3.3-70b-versatile")
                 put("messages", JSONArray().apply {
                     put(JSONObject().apply {
                         put("role", "user")
