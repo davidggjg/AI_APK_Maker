@@ -63,11 +63,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun createApp(userRequest: String) {
         val prefs = SettingsActivity.getPrefs(this)
-        val geminiKey = prefs.getString("gemini_key", "") ?: ""
+        val groqKey = prefs.getString("gemini_key", "") ?: ""
         val githubToken = prefs.getString("github_token", "") ?: ""
         val githubRepo = prefs.getString("github_repo", "") ?: ""
 
-        if (geminiKey.isEmpty() || githubToken.isEmpty() || githubRepo.isEmpty()) {
+        if (groqKey.isEmpty() || githubToken.isEmpty() || githubRepo.isEmpty()) {
             Toast.makeText(this, "נא להגדיר את המפתחות בהגדרות", Toast.LENGTH_LONG).show()
             return
         }
@@ -76,7 +76,7 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 updateStatus("🤖 מייצר קוד עם AI...")
-                val code = generateCodeWithGemini(geminiKey, userRequest)
+                val code = generateCode(groqKey, userRequest)
 
                 updateStatus("📤 שולח קוד ל-GitHub...")
                 pushToGitHub(githubToken, githubRepo, code)
@@ -96,7 +96,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun generateCodeWithGemini(apiKey: String, userRequest: String): String {
+    private suspend fun generateCode(apiKey: String, userRequest: String): String {
         return withContext(Dispatchers.IO) {
             val prompt = """
                 Write a complete Android MainActivity.kt in Kotlin for: $userRequest
@@ -109,29 +109,29 @@ class MainActivity : AppCompatActivity() {
             """.trimIndent()
 
             val json = JSONObject().apply {
-                put("contents", JSONArray().apply {
+                put("model", "llama3-8b-8192")
+                put("messages", JSONArray().apply {
                     put(JSONObject().apply {
-                        put("parts", JSONArray().apply {
-                            put(JSONObject().put("text", prompt))
-                        })
+                        put("role", "user")
+                        put("content", prompt)
                     })
                 })
             }
 
             val request = Request.Builder()
-                .url("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey")
+                .url("https://api.groq.com/openai/v1/chat/completions")
+                .header("Authorization", "Bearer $apiKey")
+                .header("Content-Type", "application/json")
                 .post(json.toString().toRequestBody("application/json".toMediaType()))
                 .build()
 
             val response = client.newCall(request).execute()
-            val body = response.body?.string() ?: throw Exception("תגובה ריקה מ-Gemini")
+            val body = response.body?.string() ?: throw Exception("תגובה ריקה מ-Groq")
             JSONObject(body)
-                .getJSONArray("candidates")
+                .getJSONArray("choices")
                 .getJSONObject(0)
-                .getJSONObject("content")
-                .getJSONArray("parts")
-                .getJSONObject(0)
-                .getString("text")
+                .getJSONObject("message")
+                .getString("content")
                 .replace("```kotlin", "").replace("```", "").trim()
         }
     }
