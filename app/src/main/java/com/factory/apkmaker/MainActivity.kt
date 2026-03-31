@@ -99,7 +99,9 @@ class MainActivity : AppCompatActivity() {
     private suspend fun generateCode(apiKey: String, userRequest: String): String {
         return withContext(Dispatchers.IO) {
             val prompt = """
-                Write a complete Android MainActivity.kt in Kotlin for: $userRequest
+                Write a complete Android Activity in Kotlin for: $userRequest
+IMPORTANT: The class name MUST be exactly "GeneratedApp" not "MainActivity"
+IMPORTANT: Do NOT declare any class named MainActivity
                 Package: com.factory.apkmaker
                 Rules:
                 - Return ONLY Kotlin code, no explanations, no markdown
